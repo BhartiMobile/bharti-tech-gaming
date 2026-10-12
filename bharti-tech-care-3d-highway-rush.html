@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Bharti Tech Care Gaming — 3D Highway Rush</title>
+<style>
+:root{--cyan:#32e6ff;--panel:rgba(6,13,28,.78);--white:#f5fbff}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#06101f;color:var(--white);font-family:Arial,Helvetica,sans-serif;touch-action:none}
+#game{position:fixed;inset:0}
+canvas{display:block;width:100%;height:100%}
+#hud{position:fixed;inset:0;pointer-events:none}
+.topbar{position:absolute;left:12px;right:12px;top:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.brand,.stats,.hint{background:var(--panel);border:1px solid #ffffff24;backdrop-filter:blur(8px);border-radius:14px;box-shadow:0 8px 24px #0003}
+.brand{padding:10px 13px;max-width:68%}
+.brand b{display:block;color:var(--cyan);font-size:clamp(12px,2.8vw,17px);letter-spacing:1px}
+.brand small{display:block;margin-top:4px;color:#c7d6e8;font-size:10px;letter-spacing:2px}
+.stats{padding:9px 12px;display:flex;gap:13px;text-align:center}
+.stats span{display:block;font-size:10px;color:#a8bdd2;text-transform:uppercase}
+.stats strong{display:block;font-size:clamp(15px,3.5vw,21px);color:#fff;margin-top:3px}
+#speed{color:#ffd166}
+#overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:18px;background:linear-gradient(180deg,#06101c77,#030712b8);z-index:5}
+.panel{width:min(460px,100%);padding:25px 22px;border:1px solid #65edff65;border-radius:24px;background:linear-gradient(145deg,#111f37f2,#07101df5);box-shadow:0 20px 80px #0008;text-align:center}
+.logo{font-size:12px;letter-spacing:3px;color:var(--cyan);font-weight:900}
+.panel h1{font-size:clamp(28px,7vw,42px);line-height:1.02;margin:12px 0;color:#fff}
+.panel h1 em{font-style:normal;color:var(--cyan)}
+.panel p{color:#bdcde0;line-height:1.55;font-size:14px}
+.primary{pointer-events:auto;border:0;border-radius:13px;padding:15px 24px;font-weight:900;font-size:16px;color:#06101c;background:linear-gradient(90deg,#31e6ff,#a1f7ff);box-shadow:0 7px 25px #32e6ff35;min-width:190px}
+.tips{display:flex;justify-content:center;flex-wrap:wrap;gap:7px;margin:17px 0}
+.tips span{font-size:11px;color:#dce9f6;border:1px solid #ffffff20;background:#ffffff0b;border-radius:20px;padding:7px 10px}
+#controls{position:fixed;left:0;right:0;bottom:max(16px,env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:end;padding:0 18px;pointer-events:none;z-index:3}
+.cluster{display:flex;gap:10px;pointer-events:auto}
+.ctrl{width:clamp(58px,17vw,76px);height:clamp(58px,17vw,76px);border-radius:22px;border:1px solid #b6f7ff99;background:#07172cbd;color:#fff;font-size:27px;font-weight:bold;box-shadow:0 8px 24px #0004;backdrop-filter:blur(8px);touch-action:none;user-select:none}
+.ctrl:active{background:#31dff1;color:#04101c;transform:scale(.96)}
+.ctrl.gas{width:clamp(65px,19vw,82px);height:clamp(70px,20vw,88px);font-size:12px;color:#07101b;background:linear-gradient(145deg,#8bffbc,#26d78a);border:0}
+.ctrl.brake{font-size:12px;color:#fff;background:linear-gradient(145deg,#ff897e,#e83d57);border:0}
+#toast{position:fixed;top:100px;left:50%;transform:translateX(-50%);font-size:12px;color:#fff;background:#07101dcc;border:1px solid #ffffff25;padding:8px 12px;border-radius:20px;display:none;pointer-events:none}
+@media (max-height:500px){.brand{padding:6px 9px}.stats{padding:6px 9px}.panel{padding:15px}.panel p{margin:8px}.tips{margin:8px}.ctrl{height:54px;width:60px}}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="hud">
+  <div class="topbar">
+    <div class="brand"><b>BHARTI TECH CARE</b><small>GAMING • HIGHWAY RUSH</small></div>
+    <div class="stats">
+      <div><span>Score</span><strong id="score">0000</strong></div>
+      <div><span>Best</span><strong id="best">0000</strong></div>
+      <div><span>Speed</span><strong id="speed">0</strong></div>
+    </div>
+  </div>
+  <div id="toast">दूसरी गाड़ियों से बचो!</div>
+</div>
+<div id="controls" aria-label="गेम कंट्रोल">
+  <div class="cluster">
+    <button class="ctrl" id="left" aria-label="बाएं मुड़ें">◀</button>
+    <button class="ctrl" id="right" aria-label="दाएं मुड़ें">▶</button>
+  </div>
+  <div class="cluster">
+    <button class="ctrl brake" id="brake" aria-label="ब्रेक">BRAKE</button>
+    <button class="ctrl gas" id="gas" aria-label="एक्सेलरेटर">▲<br>GAS</button>
+  </div>
+</div>
+<div id="overlay">
+  <div class="panel">
+    <div class="logo">BHARTI TECH CARE GAMING</div>
+    <h1>3D HIGHWAY<br><em>RUSH</em></h1>
+    <p>हाईवे पर तेज़ ड्राइव करो, ट्रैफिक से बचो और अपना हाई स्कोर बनाओ। यह मोबाइल और कंप्यूटर दोनों पर चलता है।</p>
+    <div class="tips"><span>◀ ▶ लेन बदलें</span><span>▲ स्पीड बढ़ाएँ</span><span>BRAKE धीमे चलें</span></div>
+    <button class="primary" id="start">START RACING ▶</button>
+    <p style="font-size:11px;margin-bottom:0">सुझाव: मोबाइल पर नीचे के बटन दबाकर रखें।</p>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+(() => {
+  const root = document.getElementById('game');
+  const overlay = document.getElementById('overlay');
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const speedEl = document.getElementById('speed');
+  const toast = document.getElementById('toast');
+  let scene, camera, renderer, player, running=false, crashed=false;
+  let traffic=[], roadside=[], roadMarks=[];
+  let score=0, speed=0, baseSpeed=25, spawnTimer=0, lastTime=0, steer=0;
+  let best=0, laneTarget=0, hitFlash=0;
+  try { best = Number(localStorage.getItem('btc3dHighwayBest')||0); } catch(e) {}
+  bestEl.textContent=String(best).padStart(4,'0');
+
+  function mat(color, roughness=.65, metalness=0){ return new THREE.MeshStandardMaterial({color,roughness,metalness}); }
+  function box(w,h,d,material,x=0,y=0,z=0){
+    const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material); m.position.set(x,y,z); m.castShadow=true; m.receiveShadow=true; return m;
+  }
+  function makeCar(color, isPlayer=false){
+    const car=new THREE.Group();
+    const bodyMat=mat(color,.28,.18), glass=mat(0x14283d,.2,.25), tire=mat(0x101318), light=mat(0xfff2c2,.3), red=mat(0xff203c,.3);
+    car.add(box(1.55,.48,3.0,bodyMat,0,.62,0));
+    car.add(box(1.22,.52,1.45,glass,0,1.03,-.2));
+    car.add(box(1.5,.12,.6,bodyMat,0,.91,1.02));
+    car.add(box(1.45,.12,.4,bodyMat,0,.88,-1.22));
+    for(const x of [-.83,.83]) for(const z of [-.95,.98]){
+      const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.28,.28,.18,16),tire);
+      wheel.rotation.z=Math.PI/2;wheel.position.set(x,.32,z);wheel.castShadow=true;car.add(wheel);
+    }
+    for(const x of [-.53,.53]){
+      car.add(box(.25,.13,.08,isPlayer?light:red,x,.64,1.53));
+      car.add(box(.25,.12,.08,red,x,.64,-1.53));
+    }
+    if(isPlayer){
+      car.add(box(1.6,.08,.25,mat(0x07131d),0,.94,-.6));
+      car.userData.wheels=[];
+    }
+    return car;
+  }
+  function makeTree(x,z,scale=1){
+    const g=new THREE.Group();
+    const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.16,.23,1.5,7),mat(0x795035));trunk.position.y=.75;g.add(trunk);
+    const foliage=mat([0x126b42,0x1b8549,0x247a43][Math.floor(Math.random()*3)]);
+    for(let i=0;i<3;i++){
+      const cone=new THREE.Mesh(new THREE.ConeGeometry(1.05-i*.17,1.8,7),foliage);cone.position.y=1.5+i*.7;cone.castShadow=true;g.add(cone);
+    }
+    g.position.set(x,0,z);g.scale.setScalar(scale);scene.add(g);roadside.push(g);
+  }
+  function makeCloud(x,y,z,s){
+    const g=new THREE.Group(); const cm=mat(0xffffff,.95);
+    for(let i=0;i<4;i++){const c=new THREE.Mesh(new THREE.SphereGeometry(.8+Math.random()*.45,10,8),cm);c.position.set(i*.75,Math.random()*.35,Math.random()*.2);g.add(c)}
+    g.position.set(x,y,z);g.scale.setScalar(s);scene.add(g);return g;
+  }
+  function setup(){
+    scene=new THREE.Scene();scene.background=new THREE.Color(0x87ceeb);scene.fog=new THREE.Fog(0x87ceeb,45,190);
+    camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,500);
+    camera.position.set(0,6.5,12);camera.lookAt(0,1,-12);
+    renderer=new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
+    renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);
+    renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace=THREE.SRGBColorSpace;
+    root.appendChild(renderer.domElement);
+    scene.add(new THREE.HemisphereLight(0xe3f6ff,0x43623b,2.0));
+    const sun=new THREE.DirectionalLight(0xfff2d2,2.6);sun.position.set(-12,22,10);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
+    const ground=new THREE.Mesh(new THREE.PlaneGeometry(500,500),mat(0x347b43));ground.rotation.x=-Math.PI/2;ground.position.y=-.13;ground.position.z=-80;ground.receiveShadow=true;scene.add(ground);
+    const road=box(12,.12,350,mat(0x343943),0,0,-125);road.receiveShadow=true;scene.add(road);
+    const shoulderMat=mat(0xe5e7eb), edgeMat=mat(0xffcc3d);
+    for(const x of [-6.12,6.12])scene.add(box(.22,.14,350,shoulderMat,x,.08,-125));
+    for(const x of [-2,2]) for(let i=0;i<26;i++){
+      const mark=box(.11,.025,3.5,mat(0xf4f6f8),x,.075,-i*13);scene.add(mark);roadMarks.push(mark);
+    }
+    for(let i=0;i<26;i++){
+      const z=-i*13-8;
+      makeTree(-9-Math.random()*5,z,.8+Math.random()*.8);
+      makeTree(9+Math.random()*5,z,.8+Math.random()*.8);
+    }
+    makeCloud(-17,15,-45,2.3);makeCloud(15,18,-65,1.8);makeCloud(4,14,-100,1.5);
+    player=makeCar(0x10bde8,true);player.position.set(0,0,4);scene.add(player);
+    for(let i=0;i<4;i++)spawnTraffic(-35-i*32);
+    window.addEventListener('resize',resize);
+  }
+  function resize(){
+    if(!renderer)return;
+    camera.aspect=innerWidth/innerHeight;camera.fov=innerHeight<500?70:65;camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));
+  }
+  function spawnTraffic(z=-150){
+    const lanes=[-4,0,4];let lane=lanes[Math.floor(Math.random()*lanes.length)];
+    if(Math.abs(lane-player.position.x)<1.2 && z>-70) lane=lanes[(lanes.indexOf(lane)+1+Math.floor(Math.random()*2))%3];
+    const colors=[0xff435e,0xffb72b,0xa78bfa,0xf1f5f9,0x22c55e,0x2563eb];
+    const car=makeCar(colors[Math.floor(Math.random()*colors.length)]);
+    car.scale.setScalar(.94+Math.random()*.08);car.position.set(lane,0,z);scene.add(car);
+    traffic.push({mesh:car,lane,z,relative:0.7+Math.random()*.55});
+  }
+  function start(){
+    score=0;speed=baseSpeed;spawnTimer=0;running=true;crashed=false;laneTarget=0;
+    player.position.x=0;
+    traffic.forEach(t=>scene.remove(t.mesh));traffic=[];for(let i=0;i<4;i++)spawnTraffic(-45-i*34);
+    overlay.style.display='none';toast.style.display='block';setTimeout(()=>toast.style.display='none',2500);
+    lastTime=performance.now();
+  }
+  function endGame(){
+    running=false;crashed=true;
+    best=Math.max(best,Math.floor(score));
+    try{localStorage.setItem('btc3dHighwayBest',best)}catch(e){}
+    bestEl.textContent=String(best).padStart(4,'0');
+    overlay.innerHTML='<div class="panel"><div class="logo">BHARTI TECH CARE GAMING</div><h1>RACE <em>OVER</em></h1><p>टक्कर हो गई!<br>स्कोर: <b>'+Math.floor(score)+'</b> &nbsp; • &nbsp; बेस्ट: <b>'+best+'</b></p><div class="tips"><span>अगली बार ट्रैफिक से दूरी रखें</span></div><button class="primary" id="restart">RACE AGAIN ↻</button></div>';
+    overlay.style.display='flex';document.getElementById('restart').addEventListener('click',start);
+  }
+  function move(dir){ if(!running)return;laneTarget=Math.max(-4,Math.min(4,laneTarget+dir*4)); }
+  const held={gas:false,brake:false,left:false,right:false};
+  function bindHold(id,key){
+    const el=document.getElementById(id);
+    const down=e=>{e.preventDefault();held[key]=true;if(key==='left')move(-1);if(key==='right')move(1);};
+    const up=e=>{e.preventDefault();held[key]=false;};
+    el.addEventListener('pointerdown',down);el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up);el.addEventListener('pointerleave',up);
+  }
+  bindHold('left','left');bindHold('right','right');bindHold('gas','gas');bindHold('brake','brake');
+  document.getElementById('start').addEventListener('click',start);
+  document.addEventListener('keydown',e=>{
+    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key))e.preventDefault();
+    if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a')move(-1);
+    if(e.key==='ArrowRight'||e.key.toLowerCase()==='d')move(1);
+    if(e.key==='ArrowUp'||e.key.toLowerCase()==='w')held.gas=true;
+    if(e.key==='ArrowDown'||e.key.toLowerCase()==='s')held.brake=true;
+    if(e.key==='Enter'&&!running&&!crashed)start();
+  });
+  document.addEventListener('keyup',e=>{
+    if(e.key==='ArrowUp'||e.key.toLowerCase()==='w')held.gas=false;
+    if(e.key==='ArrowDown'||e.key.toLowerCase()==='s')held.brake=false;
+  });
+  function tick(now){
+    requestAnimationFrame(tick);
+    const dt=Math.min((now-lastTime)/1000||0,.04);lastTime=now;
+    if(running){
+      const targetSpeed=held.brake?12:(held.gas?43:30);
+      speed+= (targetSpeed-speed)*Math.min(1,dt*1.8);
+      score+=speed*dt*.72;
+      scoreEl.textContent=String(Math.floor(score)).padStart(4,'0');
+      speedEl.textContent=Math.round(speed*4)+' km/h';
+      player.position.x+=(laneTarget-player.position.x)*Math.min(1,dt*7);
+      player.rotation.z=(laneTarget-player.position.x)*-.035;
+      camera.position.x+=(player.position.x*.25-camera.position.x)*dt*2;
+      camera.lookAt(player.position.x*.18,1,-12);
+      for(const m of roadMarks){m.position.z+=speed*dt;if(m.position.z>9)m.position.z-=338;}
+      for(const t of roadside){t.position.z+=speed*dt;if(t.position.z>12)t.position.z-=338;}
+      spawnTimer+=dt;
+      if(spawnTimer>Math.max(.62,1.45-score/2200)){spawnTraffic(-175);spawnTimer=0;}
+      for(let i=traffic.length-1;i>=0;i--){
+        const t=traffic[i];t.mesh.position.z+=speed*dt*t.relative;
+        if(Math.abs(t.mesh.position.z-player.position.z)<2.65 && Math.abs(t.mesh.position.x-player.position.x)<1.45){endGame();break;}
+        if(t.mesh.position.z>18){scene.remove(t.mesh);traffic.splice(i,1);}
+      }
+    }
+    renderer.render(scene,camera);
+  }
+  try { setup();requestAnimationFrame(tick); }
+  catch(err){
+    root.innerHTML='<div style="padding:30px;color:white">3D गेम लोड नहीं हो पाया। इंटरनेट चालू करें और पेज फिर से खोलें।<br><small>'+String(err)+'</small></div>';
+  }
+})();
+</script>
+</body>
+</html>
