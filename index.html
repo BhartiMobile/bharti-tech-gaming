@@ -2,107 +2,137 @@
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bharti Tech Care Gaming</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bharti Tech Care - Car Racing</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#090d1d;color:white;font-family:Arial,sans-serif}
-header{padding:22px 14px;text-align:center;background:linear-gradient(120deg,#24105c,#075985)}
-h1{color:#42f5ff;margin:5px}
-nav{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:12px}
-button{border:0;border-radius:10px;padding:12px;background:#16d9ed;color:#07111f;font-weight:bold;cursor:pointer}
-main{max-width:950px;margin:auto;padding:12px}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
-.card{background:#171f38;padding:18px 8px;text-align:center;border:1px solid #344365;border-radius:16px;cursor:pointer}
-.emoji{font-size:40px}
-#play{display:none;background:#171f38;padding:18px;margin-top:18px;border-radius:16px;text-align:center}
-#board{display:flex;justify-content:center;flex-wrap:wrap;gap:7px;margin:18px auto}
-.cell{min-width:42px;min-height:42px;padding:12px;background:#344365;color:white;border-radius:8px}
-#message{color:#42f5ff;min-height:25px}
-footer{text-align:center;padding:25px;color:#aab7d5}
+body{margin:0;background:#101522;color:white;font-family:Arial,sans-serif;text-align:center}
+header{padding:16px 8px;background:#151e32;border-bottom:2px solid #00e5ff}
+h1{margin:0;color:#00e5ff;font-size:25px}
+header p{margin:7px 0 0;color:#ddd}
+.stats{display:flex;justify-content:center;gap:22px;padding:12px;font-weight:bold}
+.stats span{color:#00e5ff}
+#game{position:relative;margin:0 auto;width:min(94vw,380px);height:min(62vh,570px);min-height:350px;background:#28653a;overflow:hidden;border:3px solid #64748b;border-radius:12px}
+canvas{display:block;width:100%;height:100%}
+.overlay{position:absolute;inset:0;background:#07101dcc;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.overlay h2{color:#00e5ff;font-size:30px;margin:5px}
+.overlay p{line-height:1.5}
+button{border:0;border-radius:12px;padding:13px 22px;background:#00d9ff;color:#06111d;font-weight:bold;font-size:17px;cursor:pointer}
+.controls{display:flex;justify-content:center;gap:35px;margin:14px auto}
+.controls button{width:95px;height:58px;font-size:27px;background:#26364f;color:white;border:2px solid #00d9ff;touch-action:manipulation}
+.small{font-size:12px;color:#bdc8d8;padding:0 10px 16px}
 </style>
 </head>
 <body>
 <header>
-<h1>BHARTI TECH CARE</h1>
-<p>🎮 GAMING WORLD</p>
-<p>अपना गेम चुनो और खेलना शुरू करो!</p>
+<h1>🏁 BHARTI TECH CARE</h1>
+<p>CAR RACING CHALLENGE</p>
 </header>
-<nav>
-<button onclick="showAll()">🏠 Home</button>
-<button onclick="showAll()">🎯 All Games</button>
-</nav>
-<main>
-<h2>🔥 Popular Games</h2>
-<div class="cards" id="games"></div>
-<section id="play">
-<h2 id="gameTitle"></h2>
-<p id="instructions"></p>
-<p>स्कोर: <b id="score">0</b></p>
-<div id="board"></div>
-<p id="message">गेम शुरू करो!</p>
-<button onclick="startGame()">🔄 Restart</button>
-<button onclick="showAll()">🏠 वापस जाएँ</button>
-</section>
-</main>
-<footer>© Bharti Tech Care Gaming</footer>
+<div class="stats">
+<div>स्कोर: <span id="score">0</span></div>
+<div>बेस्ट: <span id="best">0</span></div>
+<div>स्पीड: <span id="speed">1</span></div>
+</div>
+<div id="game">
+<canvas id="canvas" width="360" height="540"></canvas>
+<div class="overlay" id="overlay">
+<h2>🏎️ CAR RACING</h2>
+<p>दूसरी कारों से बचो और ज्यादा स्कोर बनाओ!<br>मोबाइल पर बटन या कंप्यूटर पर ← → दबाओ।</p>
+<button id="start">गेम शुरू करें ▶</button>
+</div>
+</div>
+<div class="controls">
+<button id="left" aria-label="बाएं">⬅️</button>
+<button id="right" aria-label="दाएं">➡️</button>
+</div>
+<div class="small">Bharti Tech Care Gaming • अपना रिकॉर्ड बनाओ!</div>
 <script>
-const list=[
-["🔢","Number Puzzle","number"],
-["🧩","Arrow Puzzle","arrow"],
-["🫧","Bubble Puzzle","bubble"],
-["⚽","Ball Puzzle","ball"],
-["🏃","Running Game","run"],
-["🐍","Snake Game","snake"],
-["🏎️","Car Racing","car"],
-["🐔","Chicken Road","chicken"],
-["⭕","Tic Tac Toe","tic"]
-];
-const games=document.getElementById("games");
-list.forEach(g=>{
-let d=document.createElement("div");d.className="card";
-d.innerHTML='<div class="emoji">'+g[0]+'</div><b>'+g[1]+'</b><p>▶ Play Now</p>';
-d.onclick=()=>openGame(g[1],g[2]);games.appendChild(d);
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+const overlay=document.getElementById('overlay');
+const scoreEl=document.getElementById('score');
+const bestEl=document.getElementById('best');
+const speedEl=document.getElementById('speed');
+const W=360,H=540;
+const laneX=[105,180,255];
+let player,traffic,score,speed,frame,running,gameOver,best;
+try{best=Number(localStorage.getItem('btcRacingBest'))||0}catch(e){best=0}
+bestEl.textContent=best;
+function reset(){
+player={lane:1,x:laneX[1],y:440,w:38,h:65};
+traffic=[];score=0;speed=3;frame=0;running=true;gameOver=false;
+scoreEl.textContent='0';speedEl.textContent='1';
+overlay.style.display='none';
+}
+function roundedRect(x,y,w,h,r,color){
+ctx.fillStyle=color;ctx.beginPath();
+ctx.roundRect(x,y,w,h,r);ctx.fill();
+}
+function drawCar(x,y,color,isPlayer){
+roundedRect(x-19,y-32,38,64,color,7);
+roundedRect(x-13,y-22,26,19,isPlayer?'#b9f4ff':'#dce7ef',4);
+roundedRect(x-13,y+7,26,15,isPlayer?'#164e63':'#333d4d',3);
+ctx.fillStyle='#fff5b0';
+ctx.fillRect(x-15,y-29,8,4);ctx.fillRect(x+7,y-29,8,4);
+ctx.fillStyle='#ff3b4f';
+ctx.fillRect(x-15,y+25,8,4);ctx.fillRect(x+7,y+25,8,4);
+ctx.fillStyle='#111';
+ctx.fillRect(x-22,y-20,5,15);ctx.fillRect(x+17,y-20,5,15);
+ctx.fillRect(x-22,y+12,5,15);ctx.fillRect(x+17,y+12,5,15);
+}
+function drawRoad(){
+ctx.fillStyle='#28653a';ctx.fillRect(0,0,W,H);
+ctx.fillStyle='#343943';ctx.fillRect(55,0,250,H);
+ctx.fillStyle='#f4f4f4';ctx.fillRect(55,0,5,H);ctx.fillRect(300,0,5,H);
+ctx.fillStyle='#f8d34d';
+for(let y=-40+(frame*speed%70);y<H;y+=70){
+ctx.fillRect(136,y,4,38);ctx.fillRect(220,y,4,38);
+}
+}
+function endGame(){
+running=false;gameOver=true;
+if(score>best){best=score;bestEl.textContent=best;
+try{localStorage.setItem('btcRacingBest',best)}catch(e){}}
+overlay.innerHTML='<h2>💥 GAME OVER</h2><p>आपका स्कोर: <b>'+score+'</b><br>बेस्ट स्कोर: <b>'+best+'</b></p><button id="restart">फिर से खेलें 🔄</button>';
+overlay.style.display='flex';
+document.getElementById('restart').onclick=reset;
+}
+function loop(){
+if(!running)return;
+frame++;
+speed=3+Math.min(score/180,5);
+if(frame%Math.max(25,65-Math.floor(speed*4))===0){
+let lane=Math.floor(Math.random()*3);
+traffic.push({lane,x:laneX[lane],y:-45,color:['#ff4d6d','#ffc857','#a78bfa','#f97316'][Math.floor(Math.random()*4)]});
+}
+drawRoad();
+for(let i=traffic.length-1;i>=0;i--){
+let t=traffic[i];t.y+=speed;
+drawCar(t.x,t.y,t.color,false);
+if(Math.abs(t.x-player.x)<31&&Math.abs(t.y-player.y)<53){endGame();return}
+if(t.y>H+50)traffic.splice(i,1);
+}
+drawCar(player.x,player.y,'#00d9ff',true);
+if(frame%6===0){score++;scoreEl.textContent=score}
+speedEl.textContent=(1+Math.floor(speed-3)).toString();
+requestAnimationFrame(loop);
+}
+function move(dir){
+if(!running)return;
+player.lane=Math.max(0,Math.min(2,player.lane+dir));
+player.x=laneX[player.lane];
+}
+document.getElementById('start').onclick=()=>{reset();loop()};
+document.getElementById('left').addEventListener('pointerdown',e=>{e.preventDefault();move(-1)});
+document.getElementById('right').addEventListener('pointerdown',e=>{e.preventDefault();move(1)});
+document.addEventListener('keydown',e=>{
+if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')move(-1);
+if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')move(1);
+if((e.key==='Enter'||e.key===' ')&&!running){
+if(!gameOver){reset();loop()}
+}
 });
-let mode="number",score=0,answer=0,turn=0,over=false;
-function showAll(){
-document.getElementById("play").style.display="none";
-games.parentElement.style.display="grid";
-}
-function openGame(title,m){
-mode=m;document.getElementById("gameTitle").textContent=title;
-document.getElementById("play").style.display="block";
-games.parentElement.style.display="grid";
-startGame();
-document.getElementById("play").scrollIntoView({behavior:"smooth"});
-}
-function startGame(){
-score=0;turn=0;over=false;updateScore();
-let b=document.getElementById("board");b.innerHTML="";
-let msg=document.getElementById("message");
-const ins={
-number:"1 से 10 में छिपा नंबर चुनो।",
-arrow:"सही दिशा वाला तीर चुनो।",
-bubble:"एक जैसे रंग के बबल चुनो।",
-ball:"गेंद को गोल में पहुँचाओ।",
-run:"बाधा आने पर JUMP दबाओ।",
-snake:"नंबर दबाकर साँप को खाना खिलाओ।",
-car:"कार को सुरक्षित लेन में चलाओ।",
-chicken:"सड़क पार करो और गाड़ियों से बचो।",
-tic:"तीन निशान एक लाइन में लगाओ।"
-};
-document.getElementById("instructions").textContent=ins[mode]||"खेलो और स्कोर बनाओ!";
-msg.textContent="शुभकामनाएँ!";
-if(mode==="number"){answer=1+Math.floor(Math.random()*10);for(let i=1;i<=10;i++)add(i,()=>{if(i===answer){score+=10;msg.textContent="🎉 सही जवाब! +10";answer=1+Math.floor(Math.random()*10)}else msg.textContent="फिर कोशिश करो!";updateScore()})}
-else if(mode==="arrow"){let dirs=["⬆️","⬇️","⬅️","➡️"];answer=dirs[Math.floor(Math.random()*4)];msg.textContent="यह दिशा चुनो: "+answer;dirs.sort(()=>Math.random()-.5).forEach(x=>add(x,()=>{if(x===answer){score+=10;msg.textContent="सही!";answer=dirs[Math.floor(Math.random()*4)];msg.textContent+=" अगला: "+answer}else msg.textContent="गलत दिशा!";updateScore()}))}
-else if(mode==="bubble"||mode==="ball"){let colors=["🔵","🟡","🔴","🟢"];answer=colors[Math.floor(Math.random()*4)];msg.textContent="यह चुनो: "+answer;for(let i=0;i<12;i++){let x=colors[Math.floor(Math.random()*4)];add(x,()=>{if(x===answer){score+=5;msg.textContent="अच्छा निशाना! +5"}else msg.textContent="दूसरा रंग चुनो";updateScore()})}}
-else if(mode==="tic"){let vals=Array(9).fill("");let player="X";for(let i=0;i<9;i++)add("⬜",function(){if(vals[i]||over)return;vals[i]=player;this.textContent=player;if(vals[i]&&[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]].some(a=>a.every(j=>vals[j]===player))){msg.textContent=player+" जीता!";score+=10;over=true;updateScore();return}if(vals.every(Boolean)){msg.textContent="मैच ड्रॉ!";over=true;return}player=player==="X"?"O":"X";if(player==="O"){let empty=vals.map((v,j)=>v? -1:j).filter(j=>j>=0);let j=empty[Math.floor(Math.random()*empty.length)];vals[j]="O";b.children[j].textContent="O";if([[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]].some(a=>a.every(k=>vals[k]==="O"))){msg.textContent="कंप्यूटर जीता!";over=true}else player="X"}})}
-else if(mode==="run"||mode==="car"||mode==="chicken"){msg.textContent="हर सही चाल पर 1 अंक। टक्कर से बचो!";let lane=1;function draw(){b.innerHTML="";["⬅️","⬆️","➡️"].forEach((x,i)=>add(x,()=>{if(over)return;lane=i;turn++;if(Math.random()<.22){msg.textContent="💥 टक्कर! गेम ओवर";over=true}else{score++;msg.textContent="सुरक्षित! अगली चाल चलो";updateScore();draw()}}));add(mode==="run"?"🏃":mode==="car"?"🏎️":"🐔",()=>{if(over)return;score++;turn++;updateScore();msg.textContent="बढ़िया! आगे बढ़ो";if(turn>=15){msg.textContent="🏆 लेवल पूरा!";over=true}else draw()})}draw()}
-else if(mode==="snake"){msg.textContent="खाना पकड़ने के लिए सही नंबर चुनो";for(let i=1;i<=9;i++)add(i,()=>{score+=Math.floor(Math.random()*5)+1;msg.textContent="🐍 साँप ने खाना खाया!";updateScore()})}
-function add(label,fn){let e=document.createElement("button");e.className="cell";e.textContent=label;e.onclick=fn;document.getElementById("board").appendChild(e)}
-}
-function updateScore(){document.getElementById("score").textContent=score}
-showAll();
+drawRoad();drawCar(laneX[1],440,'#00d9ff',true);
 </script>
 </body>
 </html>
