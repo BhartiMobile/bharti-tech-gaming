@@ -1,138 +1,17 @@
-<!DOCTYPE html>
-<html lang="hi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bharti Tech Care - Car Racing</title>
-<style>
-*{box-sizing:border-box}
-body{margin:0;background:#101522;color:white;font-family:Arial,sans-serif;text-align:center}
-header{padding:16px 8px;background:#151e32;border-bottom:2px solid #00e5ff}
-h1{margin:0;color:#00e5ff;font-size:25px}
-header p{margin:7px 0 0;color:#ddd}
-.stats{display:flex;justify-content:center;gap:22px;padding:12px;font-weight:bold}
-.stats span{color:#00e5ff}
-#game{position:relative;margin:0 auto;width:min(94vw,380px);height:min(62vh,570px);min-height:350px;background:#28653a;overflow:hidden;border:3px solid #64748b;border-radius:12px}
-canvas{display:block;width:100%;height:100%}
-.overlay{position:absolute;inset:0;background:#07101dcc;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
-.overlay h2{color:#00e5ff;font-size:30px;margin:5px}
-.overlay p{line-height:1.5}
-button{border:0;border-radius:12px;padding:13px 22px;background:#00d9ff;color:#06111d;font-weight:bold;font-size:17px;cursor:pointer}
-.controls{display:flex;justify-content:center;gap:35px;margin:14px auto}
-.controls button{width:95px;height:58px;font-size:27px;background:#26364f;color:white;border:2px solid #00d9ff;touch-action:manipulation}
-.small{font-size:12px;color:#bdc8d8;padding:0 10px 16px}
-</style>
-</head>
-<body>
-<header>
-<h1>🏁 BHARTI TECH CARE</h1>
-<p>CAR RACING CHALLENGE</p>
-</header>
-<div class="stats">
-<div>स्कोर: <span id="score">0</span></div>
-<div>बेस्ट: <span id="best">0</span></div>
-<div>स्पीड: <span id="speed">1</span></div>
-</div>
-<div id="game">
-<canvas id="canvas" width="360" height="540"></canvas>
-<div class="overlay" id="overlay">
-<h2>🏎️ CAR RACING</h2>
-<p>दूसरी कारों से बचो और ज्यादा स्कोर बनाओ!<br>मोबाइल पर बटन या कंप्यूटर पर ← → दबाओ।</p>
-<button id="start">गेम शुरू करें ▶</button>
-</div>
-</div>
-<div class="controls">
-<button id="left" aria-label="बाएं">⬅️</button>
-<button id="right" aria-label="दाएं">➡️</button>
-</div>
-<div class="small">Bharti Tech Care Gaming • अपना रिकॉर्ड बनाओ!</div>
-<script>
-const canvas=document.getElementById('canvas');
-const ctx=canvas.getContext('2d');
-const overlay=document.getElementById('overlay');
-const scoreEl=document.getElementById('score');
-const bestEl=document.getElementById('best');
-const speedEl=document.getElementById('speed');
-const W=360,H=540;
-const laneX=[105,180,255];
-let player,traffic,score,speed,frame,running,gameOver,best;
-try{best=Number(localStorage.getItem('btcRacingBest'))||0}catch(e){best=0}
-bestEl.textContent=best;
-function reset(){
-player={lane:1,x:laneX[1],y:440,w:38,h:65};
-traffic=[];score=0;speed=3;frame=0;running=true;gameOver=false;
-scoreEl.textContent='0';speedEl.textContent='1';
-overlay.style.display='none';
-}
-function roundedRect(x,y,w,h,r,color){
-ctx.fillStyle=color;ctx.beginPath();
-ctx.roundRect(x,y,w,h,r);ctx.fill();
-}
-function drawCar(x,y,color,isPlayer){
-roundedRect(x-19,y-32,38,64,color,7);
-roundedRect(x-13,y-22,26,19,isPlayer?'#b9f4ff':'#dce7ef',4);
-roundedRect(x-13,y+7,26,15,isPlayer?'#164e63':'#333d4d',3);
-ctx.fillStyle='#fff5b0';
-ctx.fillRect(x-15,y-29,8,4);ctx.fillRect(x+7,y-29,8,4);
-ctx.fillStyle='#ff3b4f';
-ctx.fillRect(x-15,y+25,8,4);ctx.fillRect(x+7,y+25,8,4);
-ctx.fillStyle='#111';
-ctx.fillRect(x-22,y-20,5,15);ctx.fillRect(x+17,y-20,5,15);
-ctx.fillRect(x-22,y+12,5,15);ctx.fillRect(x+17,y+12,5,15);
-}
-function drawRoad(){
-ctx.fillStyle='#28653a';ctx.fillRect(0,0,W,H);
-ctx.fillStyle='#343943';ctx.fillRect(55,0,250,H);
-ctx.fillStyle='#f4f4f4';ctx.fillRect(55,0,5,H);ctx.fillRect(300,0,5,H);
-ctx.fillStyle='#f8d34d';
-for(let y=-40+(frame*speed%70);y<H;y+=70){
-ctx.fillRect(136,y,4,38);ctx.fillRect(220,y,4,38);
-}
-}
-function endGame(){
-running=false;gameOver=true;
-if(score>best){best=score;bestEl.textContent=best;
-try{localStorage.setItem('btcRacingBest',best)}catch(e){}}
-overlay.innerHTML='<h2>💥 GAME OVER</h2><p>आपका स्कोर: <b>'+score+'</b><br>बेस्ट स्कोर: <b>'+best+'</b></p><button id="restart">फिर से खेलें 🔄</button>';
-overlay.style.display='flex';
-document.getElementById('restart').onclick=reset;
-}
-function loop(){
-if(!running)return;
-frame++;
-speed=3+Math.min(score/180,5);
-if(frame%Math.max(25,65-Math.floor(speed*4))===0){
-let lane=Math.floor(Math.random()*3);
-traffic.push({lane,x:laneX[lane],y:-45,color:['#ff4d6d','#ffc857','#a78bfa','#f97316'][Math.floor(Math.random()*4)]});
-}
-drawRoad();
-for(let i=traffic.length-1;i>=0;i--){
-let t=traffic[i];t.y+=speed;
-drawCar(t.x,t.y,t.color,false);
-if(Math.abs(t.x-player.x)<31&&Math.abs(t.y-player.y)<53){endGame();return}
-if(t.y>H+50)traffic.splice(i,1);
-}
-drawCar(player.x,player.y,'#00d9ff',true);
-if(frame%6===0){score++;scoreEl.textContent=score}
-speedEl.textContent=(1+Math.floor(speed-3)).toString();
-requestAnimationFrame(loop);
-}
-function move(dir){
-if(!running)return;
-player.lane=Math.max(0,Math.min(2,player.lane+dir));
-player.x=laneX[player.lane];
-}
-document.getElementById('start').onclick=()=>{reset();loop()};
-document.getElementById('left').addEventListener('pointerdown',e=>{e.preventDefault();move(-1)});
-document.getElementById('right').addEventListener('pointerdown',e=>{e.preventDefault();move(1)});
-document.addEventListener('keydown',e=>{
-if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')move(-1);
-if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')move(1);
-if((e.key==='Enter'||e.key===' ')&&!running){
-if(!gameOver){reset();loop()}
-}
-});
-drawRoad();drawCar(laneX[1],440,'#00d9ff',true);
-</script>
-</body>
-</html>
+Create a complete, modern 3D mobile racing game for my brand Bharti Tech Care Gaming, called 3D Highway Rush.
+
+Requirements:
+
+- Build a real playable 3D highway racing game using Three.js.
+- Create a realistic 3D sports car, detailed highway, trees, road markings, sky, lighting, shadows, and moving traffic.
+- The player must avoid other vehicles, earn points, increase speed, and set a high score.
+- Add mobile touch controls: left, right, accelerator, and brake.
+- Add keyboard controls for PC.
+- Include a professional gaming start screen, pause option, game-over screen, restart button, score, speedometer, and saved best score.
+- Use a premium dark gaming interface with neon blue accents and professional Bharti Tech Care Gaming branding.
+- Make it responsive for Android mobile screens and desktop browsers.
+- Use GitHub Pages-compatible files and instructions. Load Three.js from a reliable CDN.
+- Optimize performance for ordinary Android phones.
+- Do not create a simple 2D game or a static mockup. The game must be genuinely playable in 3D.
+- Provide all required source code and explain exactly how to publish it on GitHub Pages.
+- Do not require paid APIs or paid services.
